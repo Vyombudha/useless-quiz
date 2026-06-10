@@ -1,0 +1,1774 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive MCQ Solver</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --primary: #4a6fa5;
+            --primary-hover: #3b5a84;
+            --text: #333333;
+            --text-light: #666666;
+            --success: #2ecc71;
+            --error: #e74c3c;
+            --border: #e0e0e0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .quiz-container {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 700px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            transition: all 0.3s ease;
+        }
+
+        header {
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .selector-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        select {
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            font-size: 1rem;
+            background-color: #fff;
+            cursor: pointer;
+            outline: none;
+        }
+
+        select:focus {
+            border-color: var(--primary);
+        }
+
+        .progress-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            width: 100%;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .question-section {
+            margin-bottom: 25px;
+        }
+
+        .question-text {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .options-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option-btn {
+            background: #fff;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 15px 20px;
+            text-align: left;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .option-btn:hover:not([disabled]) {
+            border-color: var(--primary);
+            background-color: rgba(74, 111, 165, 0.05);
+        }
+
+        .option-prefix {
+            font-weight: bold;
+            margin-right: 15px;
+            background: var(--bg-color);
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: var(--text-light);
+        }
+
+        /* Feedback Classes */
+        .option-btn.correct {
+            background-color: rgba(46, 204, 113, 0.15) !important;
+            border-color: var(--success) !important;
+            color: #1e7e34;
+        }
+
+        .option-btn.incorrect {
+            background-color: rgba(231, 76, 60, 0.15) !important;
+            border-color: var(--error) !important;
+            color: #bd2130;
+        }
+
+        .feedback-msg {
+            margin-top: 15px;
+            font-weight: 600;
+            font-size: 1rem;
+            display: none;
+        }
+
+        .feedback-msg.correct {
+            color: var(--success);
+            display: block;
+        }
+
+        .feedback-msg.incorrect {
+            color: var(--error);
+            display: block;
+        }
+
+        footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .action-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: background 0.2s ease;
+        }
+
+        .action-btn:hover:not([disabled]) {
+            background: var(--primary-hover);
+        }
+
+        .action-btn:disabled {
+            background: var(--border);
+            cursor: not-allowed;
+        }
+
+        .score-badge {
+            font-weight: bold;
+            color: var(--primary);
+            background: rgba(74, 111, 165, 0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="quiz-container">
+        <header>
+            <div class="selector-group">
+                <label for="chapter-select">Select Chapter</label>
+                <select id="chapter-select" onchange="changeChapter()"></select>
+            </div>
+
+            <div class="progress-container">
+                <span id="question-count">Question 0 of 0</span>
+                <span class="score-badge" id="score-display">Score: 0/0</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+        </header>
+
+        <main>
+            <div class="question-section">
+                <div class="question-text" id="question-text">Loading question...</div>
+                <div class="options-grid" id="options-grid"></div>
+            </div>
+
+            <div class="feedback-msg" id="feedback-msg"></div>
+        </main>
+
+        <footer>
+            <button class="action-btn" id="prev-btn" onclick="prevQuestion()" disabled>Previous</button>
+            <button class="action-btn" id="next-btn" onclick="nextQuestion()" disabled>Next</button>
+        </footer>
+    </div>
+
+    <script>
+        // Paste your entire JSON structure right here:
+        const quizData =
+        {
+            "course": "CT026-3-1-Systems Analysis and Design",
+            "total_questions": 120,
+            "chapters": [
+                {
+                    "chapter": 1,
+                    "title": "Introduction to Information Systems",
+                    "questions": [
+                        {
+                            "id": 1,
+                            "question": "Which of the following best defines a 'system'?",
+                            "options": {
+                                "A": "A single hardware device that stores data",
+                                "B": "A set of related components that produces specific results",
+                                "C": "A collection of unrelated software programs",
+                                "D": "A database management tool"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 2,
+                            "question": "Which of the following is NOT a component of an Information System?",
+                            "options": {
+                                "A": "Hardware",
+                                "B": "Software",
+                                "C": "Management",
+                                "D": "Data"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 3,
+                            "question": "Which component of an Information System is referred to as the 'physical layer'?",
+                            "options": {
+                                "A": "Software",
+                                "B": "Data",
+                                "C": "Hardware",
+                                "D": "Processes"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 4,
+                            "question": "What is 'data' in the context of an Information System?",
+                            "options": {
+                                "A": "Processed information ready for decision-making",
+                                "B": "Raw facts that an IS transforms into useful information",
+                                "C": "Programs that control hardware",
+                                "D": "Business functions performed by users"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 5,
+                            "question": "Which type of Information System supports company-wide operations and data management requirements?",
+                            "options": {
+                                "A": "Transaction Processing Systems",
+                                "B": "Knowledge Management Systems",
+                                "C": "Enterprise Computing Systems",
+                                "D": "User Productivity Systems"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 6,
+                            "question": "What does ERP stand for?",
+                            "options": {
+                                "A": "Enterprise Resource Planning",
+                                "B": "Electronic Resource Processing",
+                                "C": "Enterprise Reporting Protocol",
+                                "D": "Electronic Resource Planning"
+                            },
+                            "answer": "A"
+                        },
+                        {
+                            "id": 7,
+                            "question": "Transaction Processing Systems (TPS) are characterized by:",
+                            "options": {
+                                "A": "Small amounts of data and low criticality",
+                                "B": "Large amounts of data and mission-critical operations",
+                                "C": "Expert system reasoning using inference rules",
+                                "D": "Individual user scheduling and calendar tools"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 8,
+                            "question": "Which type of Information System is also known as an 'expert system'?",
+                            "options": {
+                                "A": "Enterprise Computing Systems",
+                                "B": "Transaction Processing Systems",
+                                "C": "Business Support Systems",
+                                "D": "Knowledge Management Systems"
+                            },
+                            "answer": "D"
+                        },
+                        {
+                            "id": 9,
+                            "question": "What technique do many Knowledge Management Systems use to simulate human reasoning?",
+                            "options": {
+                                "A": "Linear regression",
+                                "B": "Fuzzy logic",
+                                "C": "Binary search",
+                                "D": "Relational mapping"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 10,
+                            "question": "Which IS type converts relatively raw TPS data into summarized and aggregated reports for managers?",
+                            "options": {
+                                "A": "Knowledge Management Systems",
+                                "B": "Enterprise Computing Systems",
+                                "C": "Business Support Systems",
+                                "D": "User Productivity Systems"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 11,
+                            "question": "Groupware, calendar, and scheduling software are examples of which IS type?",
+                            "options": {
+                                "A": "Transaction Processing Systems",
+                                "B": "User Productivity Systems",
+                                "C": "Business Support Systems",
+                                "D": "Enterprise Computing Systems"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 12,
+                            "question": "The 'Processes' component of an Information System represents:",
+                            "options": {
+                                "A": "Hardware devices used to process data",
+                                "B": "Programs that manage databases",
+                                "C": "Tasks and business functions performed to achieve specific results",
+                                "D": "Physical storage media such as hard drives"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 13,
+                            "question": "Which of the following is an example of a Transaction Processing System?",
+                            "options": {
+                                "A": "Expert system for medical diagnosis",
+                                "B": "Payroll system",
+                                "C": "Email and calendar software",
+                                "D": "ERP system"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 14,
+                            "question": "Structured Analysis uses which concept to plan and manage the system development process?",
+                            "options": {
+                                "A": "Object-Oriented Analysis",
+                                "B": "The Agile Manifesto",
+                                "C": "SDLC",
+                                "D": "Spiral Model"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 15,
+                            "question": "Which development approach combines data and processes that act on the data into things called 'objects'?",
+                            "options": {
+                                "A": "Structured Analysis",
+                                "B": "Object-Oriented Analysis",
+                                "C": "Waterfall Model",
+                                "D": "V Model"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 16,
+                            "question": "Which Agile-related methods include Scrum and Extreme Programming (XP)?",
+                            "options": {
+                                "A": "Structured Analysis",
+                                "B": "Rapid Application Development (RAD)",
+                                "C": "Agile Methods",
+                                "D": "V Model"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 17,
+                            "question": "What does JAD stand for?",
+                            "options": {
+                                "A": "Joint Application Development",
+                                "B": "Java Application Design",
+                                "C": "Joint Analysis and Design",
+                                "D": "Java Agile Development"
+                            },
+                            "answer": "A"
+                        },
+                        {
+                            "id": 18,
+                            "question": "Which IS component can include servers, workstations, networks, scanners, and mobile devices?",
+                            "options": {
+                                "A": "Software",
+                                "B": "Data",
+                                "C": "People",
+                                "D": "Hardware"
+                            },
+                            "answer": "D"
+                        },
+                        {
+                            "id": 19,
+                            "question": "In the context of Information Systems, a 'user' is best described as:",
+                            "options": {
+                                "A": "A person who only writes source code",
+                                "B": "A person who communicates with an IS or uses the information it generates",
+                                "C": "A hardware technician responsible for maintenance",
+                                "D": "A database administrator"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 20,
+                            "question": "Which development approach is described as the newest, emphasizing continuous feedback and iterative development?",
+                            "options": {
+                                "A": "Waterfall Methodology",
+                                "B": "Structured Analysis",
+                                "C": "Agile Methods",
+                                "D": "Rational Unified Process (RUP)"
+                            },
+                            "answer": "C"
+                        }
+                    ]
+                },
+                {
+                    "chapter": 2,
+                    "title": "System Analyst and Project Manager",
+                    "questions": [
+                        {
+                            "id": 21,
+                            "question": "According to Hoffer, which role involves a systems analyst being hired specifically to address IS issues within a business?",
+                            "options": {
+                                "A": "Supporting Expert",
+                                "B": "Consultant",
+                                "C": "Agent of Change",
+                                "D": "Project Manager"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 22,
+                            "question": "An 'Agent of Change' in systems analysis is best described as:",
+                            "options": {
+                                "A": "A person who only tests and documents software",
+                                "B": "A catalyst for change who develops a transformation plan and works with others to facilitate it",
+                                "C": "A hardware installation specialist",
+                                "D": "A database schema designer"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 23,
+                            "question": "Which skill category of a systems analyst includes 'systems thinking', 'organization knowledge', and 'problem identification'?",
+                            "options": {
+                                "A": "Management Skills",
+                                "B": "Interpersonal Skills",
+                                "C": "Technical Skills",
+                                "D": "Analytical Skills"
+                            },
+                            "answer": "D"
+                        },
+                        {
+                            "id": 24,
+                            "question": "Risk Management, Change Management, and Resource Management fall under which skill category for a systems analyst?",
+                            "options": {
+                                "A": "Analytical Skills",
+                                "B": "Technical Skills",
+                                "C": "Management Skills",
+                                "D": "Interpersonal Skills"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 25,
+                            "question": "Which skill category of a systems analyst involves 'facilitating groups' and 'managing expectations of users and managers'?",
+                            "options": {
+                                "A": "Technical Skills",
+                                "B": "Interpersonal Skills",
+                                "C": "Analytical Skills",
+                                "D": "Management Skills"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 26,
+                            "question": "Which of the following is listed as a REASON for resistance to change in an organization?",
+                            "options": {
+                                "A": "Increased job satisfaction",
+                                "B": "The threat to job security",
+                                "C": "Higher employee morale",
+                                "D": "Better inter-departmental communication"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 27,
+                            "question": "Which of the following is an EFFECT of resistance to change?",
+                            "options": {
+                                "A": "Improved overall productivity",
+                                "B": "Increased cross-team collaboration",
+                                "C": "Withholding facts and providing inaccurate data",
+                                "D": "Enthusiastic adoption of new systems"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 28,
+                            "question": "Which of the following is a method recommended to OVERCOME resistance to change?",
+                            "options": {
+                                "A": "Ignoring employee concerns entirely",
+                                "B": "Extending necessary training and seeking employee participation",
+                                "C": "Immediately terminating resistant employees",
+                                "D": "Reducing communication about planned changes"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 29,
+                            "question": "According to the course material, successful projects must be:",
+                            "options": {
+                                "A": "Completed quickly regardless of budget",
+                                "B": "Completed on time, within budget, meet requirements, and satisfy users",
+                                "C": "Developed solely by IT staff without user input",
+                                "D": "Built exclusively with the latest available technology"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 30,
+                            "question": "Which project manager role involves creating a specific timetable that shows tasks, task dependencies, and critical tasks?",
+                            "options": {
+                                "A": "Project Planning",
+                                "B": "Project Reporting",
+                                "C": "Project Scheduling",
+                                "D": "Project Monitoring"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 31,
+                            "question": "'Structured walkthrough' — a review of a team member's work by other team members — is associated with which project management role?",
+                            "options": {
+                                "A": "Project Planning",
+                                "B": "Project Scheduling",
+                                "C": "Project Reporting",
+                                "D": "Project Monitoring and Controlling"
+                            },
+                            "answer": "D"
+                        },
+                        {
+                            "id": 32,
+                            "question": "Gantt charts are often included to show project status graphically in which project manager activity?",
+                            "options": {
+                                "A": "Project Planning",
+                                "B": "Project Scheduling",
+                                "C": "Project Reporting",
+                                "D": "Project Monitoring"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 33,
+                            "question": "'Project creep' is associated with which type of project management issue?",
+                            "options": {
+                                "A": "Schedule Issues",
+                                "B": "Budget Issues",
+                                "C": "Business Issues",
+                                "D": "Technical Infrastructure Issues"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 34,
+                            "question": "Cost overruns in projects typically result from which of the following?",
+                            "options": {
+                                "A": "Overstaffing and excessive testing",
+                                "B": "Unrealistic estimates and poor monitoring of progress",
+                                "C": "Too much user involvement in the project",
+                                "D": "Choosing advanced technology solutions"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 35,
+                            "question": "Brooks' Law states that:",
+                            "options": {
+                                "A": "Adding more budget to a project always ensures its success",
+                                "B": "Adding manpower to a late software project makes it later",
+                                "C": "Projects always take exactly twice as long as estimated",
+                                "D": "More developers always leads to faster development"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 36,
+                            "question": "The 'reduction of self-esteem and reputation' is listed as a:",
+                            "options": {
+                                "A": "Benefit of system implementation",
+                                "B": "Effect of resistance to change",
+                                "C": "Reason for resistance to change",
+                                "D": "Project management issue"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 37,
+                            "question": "Which project manager activity involves 'identifying all project tasks and estimating the completion time and cost of each'?",
+                            "options": {
+                                "A": "Project Scheduling",
+                                "B": "Project Reporting",
+                                "C": "Project Monitoring",
+                                "D": "Project Planning"
+                            },
+                            "answer": "D"
+                        },
+                        {
+                            "id": 38,
+                            "question": "Problems with timetables and milestones that indicate failure to recognize task dependencies are categorized as which type of project issue?",
+                            "options": {
+                                "A": "Business Issues",
+                                "B": "Budget Issues",
+                                "C": "Schedule Issues",
+                                "D": "Technical Issues"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 39,
+                            "question": "A project manager must know the duration, order of activities, and start/end times for each task. This knowledge relates primarily to which role?",
+                            "options": {
+                                "A": "Project Monitoring and Controlling",
+                                "B": "Project Reporting",
+                                "C": "Project Planning",
+                                "D": "Project Scheduling"
+                            },
+                            "answer": "D"
+                        },
+                        {
+                            "id": 40,
+                            "question": "The 'Supporting Expert' role of a systems analyst is best described as:",
+                            "options": {
+                                "A": "Managing the entire project lifecycle from start to finish",
+                                "B": "Hiring and training all project staff members",
+                                "C": "Drawing on professional expertise in hardware and software without managing the project",
+                                "D": "Serving as an external change catalyst within the organization"
+                            },
+                            "answer": "C"
+                        }
+                    ]
+                },
+                {
+                    "chapter": 3,
+                    "title": "Systems Development Life Cycle (SDLC)",
+                    "questions": [
+                        {
+                            "id": 41,
+                            "question": "What does SDLC stand for?",
+                            "options": {
+                                "A": "Software Design and Life Cycle",
+                                "B": "System Development Life Cycle",
+                                "C": "Structured Design and Logical Control",
+                                "D": "System Design and Logical Cycle"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 42,
+                            "question": "The SDLC is also known as:",
+                            "options": {
+                                "A": "Waterfall Model",
+                                "B": "Applications Development Cycle",
+                                "C": "Agile Framework",
+                                "D": "Spiral Model"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 43,
+                            "question": "How many phases does the standard SDLC model include?",
+                            "options": {
+                                "A": "Three",
+                                "B": "Four",
+                                "C": "Five",
+                                "D": "Six"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 44,
+                            "question": "Which SDLC phase begins with a system request describing problems or desired changes in an IS or business process?",
+                            "options": {
+                                "A": "Systems Analysis",
+                                "B": "Systems Design",
+                                "C": "Systems Planning",
+                                "D": "Systems Implementation"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 45,
+                            "question": "The deliverable of the Systems Planning phase is:",
+                            "options": {
+                                "A": "System Design Specification",
+                                "B": "System Requirements Document",
+                                "C": "Preliminary Investigation Report",
+                                "D": "Fully functioning Information System"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 46,
+                            "question": "The primary purpose of the Systems Analysis phase is to:",
+                            "options": {
+                                "A": "Write and test programs",
+                                "B": "Create a physical model of the new system",
+                                "C": "Build a logical model of the new system",
+                                "D": "Install and deploy the completed system"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 47,
+                            "question": "Which SDLC phase involves designing user interfaces and identifying outputs, inputs, and processes?",
+                            "options": {
+                                "A": "Systems Planning",
+                                "B": "Systems Analysis",
+                                "C": "Systems Implementation",
+                                "D": "Systems Design"
+                            },
+                            "answer": "D"
+                        },
+                        {
+                            "id": 48,
+                            "question": "What is the deliverable of the Systems Design phase?",
+                            "options": {
+                                "A": "Preliminary Investigation Report",
+                                "B": "System Requirements Document",
+                                "C": "System Design Specification",
+                                "D": "Functioning Information System"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 49,
+                            "question": "During which SDLC phase are programs written, tested, and documented?",
+                            "options": {
+                                "A": "Systems Planning",
+                                "B": "Systems Analysis",
+                                "C": "Systems Design",
+                                "D": "Systems Implementation"
+                            },
+                            "answer": "D"
+                        },
+                        {
+                            "id": 50,
+                            "question": "What is the deliverable of the Systems Implementation phase?",
+                            "options": {
+                                "A": "System Requirements Document",
+                                "B": "Preliminary Investigation Report",
+                                "C": "System Design Specification",
+                                "D": "A completely functioning and documented information system"
+                            },
+                            "answer": "D"
+                        },
+                        {
+                            "id": 51,
+                            "question": "Which SDLC phase ensures a system is 'secure, reliable, maintainable, and scalable'?",
+                            "options": {
+                                "A": "Systems Analysis",
+                                "B": "Systems Design",
+                                "C": "Systems Implementation",
+                                "D": "Systems Security and Support"
+                            },
+                            "answer": "D"
+                        },
+                        {
+                            "id": 52,
+                            "question": "In the SDLC, 'maintenance changes' refer to:",
+                            "options": {
+                                "A": "Adding new features and benefits to a system",
+                                "B": "Correcting errors and adapting to environmental changes such as new tax rates",
+                                "C": "Designing new user interfaces",
+                                "D": "Writing and testing new programs"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 53,
+                            "question": "'Enhancements' in the Systems Security and Support phase are intended to:",
+                            "options": {
+                                "A": "Fix security vulnerabilities only",
+                                "B": "Replace the old system entirely",
+                                "C": "Provide new features and benefits",
+                                "D": "Document the existing system for compliance"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 54,
+                            "question": "A 'scalable design' in the context of the SDLC means:",
+                            "options": {
+                                "A": "A design that only works on a single platform",
+                                "B": "A design that can expand to meet new business requirements and volumes",
+                                "C": "A design focused exclusively on user interface improvements",
+                                "D": "A design that minimizes overall system cost"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 55,
+                            "question": "Systems Development Methodology is defined as:",
+                            "options": {
+                                "A": "A hardware procurement and purchasing plan",
+                                "B": "A standard process for analyzing, designing, implementing, and maintaining IS",
+                                "C": "A software tool for writing and compiling code",
+                                "D": "A technique exclusively for end-user training"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 56,
+                            "question": "Which of the following is NOT listed as an importance of Systems Development Methodology?",
+                            "options": {
+                                "A": "Ensures consistency in management of projects",
+                                "B": "Reduces time and cost",
+                                "C": "Eliminates the need for user involvement",
+                                "D": "Improves the quality of work and the system"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 57,
+                            "question": "What is the main problem with the Waterfall Methodology?",
+                            "options": {
+                                "A": "It allows too much user involvement throughout the project",
+                                "B": "It is overly flexible and lacks defined phases",
+                                "C": "It has an inflexible division of a project into separate stages",
+                                "D": "It is too expensive to implement in most organizations"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 58,
+                            "question": "Which statement about the Waterfall Methodology is TRUE?",
+                            "options": {
+                                "A": "It is highly suitable when requirements are likely to change",
+                                "B": "Commitments made early make it difficult to react to changing requirements",
+                                "C": "It strongly encourages iterative and incremental development",
+                                "D": "It is the newest and most modern development approach"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 59,
+                            "question": "Fact-finding techniques such as interviews and surveys are primarily associated with which SDLC phase?",
+                            "options": {
+                                "A": "Systems Planning",
+                                "B": "Systems Design",
+                                "C": "Systems Analysis",
+                                "D": "Systems Implementation"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 60,
+                            "question": "Which SDLC phase uses 'requirement modelling' to investigate business processes and document the new system?",
+                            "options": {
+                                "A": "Systems Planning",
+                                "B": "Systems Analysis",
+                                "C": "Systems Design",
+                                "D": "Systems Security and Support"
+                            },
+                            "answer": "B"
+                        }
+                    ]
+                },
+                {
+                    "chapter": 4,
+                    "title": "Planning",
+                    "questions": [
+                        {
+                            "id": 61,
+                            "question": "The System Planning Phase is described as the fundamental process of:",
+                            "options": {
+                                "A": "Writing code and testing programs for the system",
+                                "B": "Understanding why an IS should be built and determining how the project team will build it",
+                                "C": "Designing user interfaces and screen layouts",
+                                "D": "Documenting the security and support requirements"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 62,
+                            "question": "The two major steps in the Planning Phase are:",
+                            "options": {
+                                "A": "Problem Statement and System Request",
+                                "B": "Project Initiation and Preliminary Investigation",
+                                "C": "System Design and Implementation",
+                                "D": "Feasibility Study and System Review"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 63,
+                            "question": "A 'System Request' is best described as:",
+                            "options": {
+                                "A": "A verbal request made directly to IT staff",
+                                "B": "A formal way of asking for assistance from the information systems department",
+                                "C": "A programming specification document for developers",
+                                "D": "A hardware purchase order form"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 64,
+                            "question": "Who typically completes the System Request form when a project is initiated?",
+                            "options": {
+                                "A": "IT developers and programmers",
+                                "B": "Database administrators",
+                                "C": "Business users",
+                                "D": "External consultants"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 65,
+                            "question": "Which of the following is a listed reason for a System Change Request?",
+                            "options": {
+                                "A": "The system is performing too efficiently",
+                                "B": "Improved service to customers and better performance",
+                                "C": "Too many users are accessing the system simultaneously",
+                                "D": "The system has too many advanced features"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 66,
+                            "question": "Which reason for a system request refers to a system being unable to analyze market trends?",
+                            "options": {
+                                "A": "Better performance",
+                                "B": "Improve service",
+                                "C": "More information",
+                                "D": "Stronger controls"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 67,
+                            "question": "A Systems Review Committee is used in large companies primarily to:",
+                            "options": {
+                                "A": "Write code and test new systems",
+                                "B": "Train end users on new IS features",
+                                "C": "Evaluate systems requests and establish priorities",
+                                "D": "Manage hardware procurement and vendor relationships"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 68,
+                            "question": "Which of the following is a DISADVANTAGE of a Systems Review Committee?",
+                            "options": {
+                                "A": "They always favor the technically best projects",
+                                "B": "They tend to make very fast decisions",
+                                "C": "Members might favor projects requested by their own departments",
+                                "D": "They completely eliminate political conflicts"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 69,
+                            "question": "In a Gantt chart, the horizontal axis represents:",
+                            "options": {
+                                "A": "Activities arranged by priority",
+                                "B": "Project cost and budget",
+                                "C": "Time and duration",
+                                "D": "Resource allocation"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 70,
+                            "question": "In a Gantt chart, what do 'teal diamonds' represent?",
+                            "options": {
+                                "A": "Critical tasks that can delay the project",
+                                "B": "Summary tasks representing project phases",
+                                "C": "Milestones signifying the end of a significant task or deliverable",
+                                "D": "Non-critical tasks with available slack time"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 71,
+                            "question": "What does WBS stand for?",
+                            "options": {
+                                "A": "Work Breakdown Structure",
+                                "B": "Workflow Business System",
+                                "C": "Work Budget Schedule",
+                                "D": "Workflow Breakdown Schedule"
+                            },
+                            "answer": "A"
+                        },
+                        {
+                            "id": 72,
+                            "question": "WBS is defined as:",
+                            "options": {
+                                "A": "A chart showing financial projections for IT projects",
+                                "B": "Hierarchical decomposition of a project into phases, activities, and tasks",
+                                "C": "A database of all project team resources",
+                                "D": "A network diagram showing only task dependencies"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 73,
+                            "question": "A problem statement typically:",
+                            "options": {
+                                "A": "Lists objectives and goals for the new system",
+                                "B": "Summarizes the project scope and budget",
+                                "C": "Describes the current situation and issues, usually in a paragraph or two",
+                                "D": "Provides a technical specification for developers"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 74,
+                            "question": "In a problem definition, 'issues' refer to:",
+                            "options": {
+                                "A": "Future goals the system should achieve",
+                                "B": "Technical hardware constraints",
+                                "C": "The current situation",
+                                "D": "The desired future situation"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 75,
+                            "question": "In a problem definition, 'objectives' refer to:",
+                            "options": {
+                                "A": "The current problematic situation",
+                                "B": "Budget and cost constraints",
+                                "C": "Technical requirements for the system",
+                                "D": "The desired situation that addresses each issue"
+                            },
+                            "answer": "D"
+                        },
+                        {
+                            "id": 76,
+                            "question": "'Project scope creep' is the risk associated with:",
+                            "options": {
+                                "A": "Very specific and detailed scope definitions",
+                                "B": "Gradual project expansion due to vague or general scope definitions",
+                                "C": "Projects that are defined too narrowly",
+                                "D": "Budget overruns caused solely by hardware costs"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 77,
+                            "question": "A constraint on a system project can involve:",
+                            "options": {
+                                "A": "Only hardware and software",
+                                "B": "Only budget and timeline",
+                                "C": "Hardware, software, time, policy, law, or cost",
+                                "D": "Only personnel and organizational factors"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 78,
+                            "question": "In a Gantt chart, red bars represent:",
+                            "options": {
+                                "A": "Summary tasks representing project phases",
+                                "B": "Non-critical tasks that have slack time available",
+                                "C": "Completed milestones",
+                                "D": "Critical tasks where any extension in duration will delay the project"
+                            },
+                            "answer": "D"
+                        },
+                        {
+                            "id": 79,
+                            "question": "A Preliminary Investigation Report typically includes which of the following sections?",
+                            "options": {
+                                "A": "Source code, database schemas, and test cases",
+                                "B": "Introduction, Findings, Time and Cost Estimates, and Expected Benefits",
+                                "C": "Employee performance reviews and HR records",
+                                "D": "Marketing strategies and sales forecasts"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 80,
+                            "question": "Which of the following is listed as a reason for project failure?",
+                            "options": {
+                                "A": "Clear and well-defined requirements",
+                                "B": "Realistic and accurate cost estimates",
+                                "C": "Adequate testing and test procedures",
+                                "D": "Unclear requirements, targets, or scope"
+                            },
+                            "answer": "D"
+                        }
+                    ]
+                },
+                {
+                    "chapter": 5,
+                    "title": "Feasibility Study",
+                    "questions": [
+                        {
+                            "id": 81,
+                            "question": "The main purpose of a feasibility study is to:",
+                            "options": {
+                                "A": "Write the system requirements specification",
+                                "B": "Determine whether a project has a reasonable chance of success",
+                                "C": "Design the user interface of the new system",
+                                "D": "Train end users on the new system"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 82,
+                            "question": "When are ALL projects considered feasible?",
+                            "options": {
+                                "A": "When they have large and experienced development teams",
+                                "B": "When there are no tight budgetary and time constraints",
+                                "C": "When they use only the latest available technology",
+                                "D": "When they have full management approval and support"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 83,
+                            "question": "Technical Feasibility primarily assesses:",
+                            "options": {
+                                "A": "Whether users will accept and use the system",
+                                "B": "Whether the project can be completed within the given timeline",
+                                "C": "Whether the organization has the technology resources to develop or acquire the system",
+                                "D": "Whether the system will generate sufficient profit"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 84,
+                            "question": "The question 'Is the proposed technology or solution practical?' is part of which feasibility type?",
+                            "options": {
+                                "A": "Schedule Feasibility",
+                                "B": "Operational Feasibility",
+                                "C": "Economic Feasibility",
+                                "D": "Technical Feasibility"
+                            },
+                            "answer": "D"
+                        },
+                        {
+                            "id": 85,
+                            "question": "Operational Feasibility refers to:",
+                            "options": {
+                                "A": "The financial cost of developing and running a system",
+                                "B": "The timeline and schedule for completing the project",
+                                "C": "The degree to which a proposed system solves business problems and will be accepted by users",
+                                "D": "The technical infrastructure available to the organization"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 86,
+                            "question": "What does the 'P' in the PIECES framework stand for?",
+                            "options": {
+                                "A": "Planning",
+                                "B": "Performance",
+                                "C": "Process",
+                                "D": "Personnel"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 87,
+                            "question": "In the PIECES framework, the 'E' (Economy) element assesses:",
+                            "options": {
+                                "A": "Whether the system operates at maximum efficiency",
+                                "B": "Whether the system provides cost-effective information services",
+                                "C": "Whether the system is flexible and expandable",
+                                "D": "Whether the system offers effective security controls"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 88,
+                            "question": "In the PIECES framework, which element addresses protection against fraud and the accuracy and security of data?",
+                            "options": {
+                                "A": "Performance",
+                                "B": "Information",
+                                "C": "Control",
+                                "D": "Efficiency"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 89,
+                            "question": "Schedule Feasibility assesses:",
+                            "options": {
+                                "A": "Whether the organization can financially afford the project",
+                                "B": "Whether the proposed time frame and completion dates meet organizational deadlines",
+                                "C": "Whether the required technology is available",
+                                "D": "Whether users will accept and effectively use the system"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 90,
+                            "question": "Economic Feasibility consists of which two key tests?",
+                            "options": {
+                                "A": "Technical analysis and operational analysis",
+                                "B": "Cost-benefit analysis and cash flow assessment",
+                                "C": "Schedule analysis and performance analysis",
+                                "D": "Risk analysis and benefit analysis"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 91,
+                            "question": "Tangible costs are defined as:",
+                            "options": {
+                                "A": "Costs whose dollar value cannot be easily calculated",
+                                "B": "Costs that vary depending on the level of activity",
+                                "C": "Costs for which you can assign a specific dollar value",
+                                "D": "Costs incurred only after system implementation"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 92,
+                            "question": "Which of the following is an example of an INTANGIBLE cost?",
+                            "options": {
+                                "A": "Employee salaries",
+                                "B": "Hardware and software purchases",
+                                "C": "Customer dissatisfaction",
+                                "D": "Office supplies"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 93,
+                            "question": "Direct costs are defined as:",
+                            "options": {
+                                "A": "Costs that cannot be attributed to a specific system development project",
+                                "B": "Costs that remain constant regardless of the level of activity",
+                                "C": "Costs that can be associated with the development of a specific system",
+                                "D": "Overhead expenses shared across the organization"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 94,
+                            "question": "Which of the following is an example of an INDIRECT cost?",
+                            "options": {
+                                "A": "Salaries of project team members",
+                                "B": "Purchase of hardware specifically for the new system",
+                                "C": "Initial training for users of the new system",
+                                "D": "Copy machine rentals"
+                            },
+                            "answer": "D"
+                        },
+                        {
+                            "id": 95,
+                            "question": "Fixed costs are defined as:",
+                            "options": {
+                                "A": "Costs that vary with the level of activity or effort",
+                                "B": "Costs that are relatively constant and do not depend on activity level",
+                                "C": "Costs incurred only once during system development",
+                                "D": "Costs incurred only after the system is implemented"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 96,
+                            "question": "Developmental costs are defined as:",
+                            "options": {
+                                "A": "Costs that continue to be incurred after the system is implemented",
+                                "B": "Annual software license fees",
+                                "C": "Costs incurred only once at the time the system is developed or acquired",
+                                "D": "Ongoing training and maintenance expenses"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 97,
+                            "question": "Which of the following is an example of an OPERATIONAL cost?",
+                            "options": {
+                                "A": "Initial hardware purchase for the new system",
+                                "B": "One-time software licensing fee during development",
+                                "C": "System maintenance and ongoing training",
+                                "D": "Salaries of developers during the development phase"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 98,
+                            "question": "When performing a Cost-Benefit Analysis, which solution should be selected?",
+                            "options": {
+                                "A": "The one with the lowest total development cost",
+                                "B": "The one with the highest total benefit regardless of cost",
+                                "C": "The one with the highest cost-benefit ratio",
+                                "D": "The one with the longest development timeline"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 99,
+                            "question": "'Cost-avoidance benefits' refer to:",
+                            "options": {
+                                "A": "Benefits that directly increase company revenue",
+                                "B": "Expenses that would be necessary if the new system were NOT installed",
+                                "C": "Intangible benefits such as higher employee morale",
+                                "D": "Fixed benefits that remain constant over time"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 100,
+                            "question": "Overtime pay for clerical staff during the systems analysis phase would be classified as:",
+                            "options": {
+                                "A": "Operational, fixed, and indirect",
+                                "B": "Developmental, variable, and direct",
+                                "C": "Fixed, indirect, and operational",
+                                "D": "Tangible, fixed, and indirect"
+                            },
+                            "answer": "B"
+                        }
+                    ]
+                },
+                {
+                    "chapter": 6,
+                    "title": "Systems Analysis – Requirements",
+                    "questions": [
+                        {
+                            "id": 101,
+                            "question": "Requirements Analysis is also known as:",
+                            "options": {
+                                "A": "System Design Phase",
+                                "B": "Fact-Finding Process or Requirement Elicitation",
+                                "C": "Implementation Planning",
+                                "D": "User Acceptance Testing"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 102,
+                            "question": "Which of the following is NOT listed as a fact-finding technique in the course material?",
+                            "options": {
+                                "A": "Interview",
+                                "B": "Observation",
+                                "C": "Prototyping",
+                                "D": "Sampling"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 103,
+                            "question": "In an interview, which type of question 'encourages spontaneous and unstructured responses'?",
+                            "options": {
+                                "A": "Close-ended questions",
+                                "B": "Range of response questions",
+                                "C": "Open-ended questions",
+                                "D": "Binary yes/no questions"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 104,
+                            "question": "Which step of the interview process involves 'selecting the right people and deciding on group or individual interviews'?",
+                            "options": {
+                                "A": "Step 2: Establish objectives for the interview",
+                                "B": "Step 1: Determine the people to interview",
+                                "C": "Step 3: Develop interview questions",
+                                "D": "Step 4: Prepare for the interview"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 105,
+                            "question": "How long should an interview ideally be limited to?",
+                            "options": {
+                                "A": "30 minutes",
+                                "B": "2 hours",
+                                "C": "No more than one hour",
+                                "D": "15 minutes"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 106,
+                            "question": "Which interview step involves sending a memo to the interviewee expressing appreciation and including a written summary of the discussion?",
+                            "options": {
+                                "A": "Step 5: Conduct the interview",
+                                "B": "Step 6: Document the interview",
+                                "C": "Step 7: Evaluate the interview",
+                                "D": "Step 4: Prepare for the interview"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 107,
+                            "question": "In Step 7 of the interview process, what should the systems analyst try to identify in addition to facts?",
+                            "options": {
+                                "A": "New project objectives",
+                                "B": "Hardware and software requirements",
+                                "C": "Possible biases from the interviewee",
+                                "D": "Updated budget estimates"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 108,
+                            "question": "Document Review as a fact-finding technique aims to:",
+                            "options": {
+                                "A": "Observe users while they perform tasks in their workplace",
+                                "B": "Find out the information requirements that people have in the current system",
+                                "C": "Survey a large number of users using questionnaires",
+                                "D": "Test the new system against requirements"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 109,
+                            "question": "Observation as a fact-finding technique is best described as aiming to:",
+                            "options": {
+                                "A": "Collect statistically significant survey data from users",
+                                "B": "Review all existing documentation and blank forms",
+                                "C": "See what really happens, not what people say happens",
+                                "D": "Conduct structured one-on-one interviews"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 110,
+                            "question": "The Hawthorne Effect refers to:",
+                            "options": {
+                                "A": "Users refusing to cooperate with systems analysts",
+                                "B": "The tendency of productivity to improve when workers know they are being observed",
+                                "C": "The difficulty in reading and interpreting handwritten documents",
+                                "D": "Users providing inaccurate data in online surveys"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 111,
+                            "question": "Which sampling technique involves selecting 'every tenth customer for review'?",
+                            "options": {
+                                "A": "Random sample",
+                                "B": "Stratified sample",
+                                "C": "Systematic sample",
+                                "D": "Purposeful sample"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 112,
+                            "question": "The main objective of sampling as a fact-finding technique is to:",
+                            "options": {
+                                "A": "Interview all possible stakeholders individually",
+                                "B": "Ensure accurate representation of the overall population",
+                                "C": "Gather only quantitative numerical data",
+                                "D": "Completely replace the need for interviews and surveys"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 113,
+                            "question": "Research as a fact-finding technique includes:",
+                            "options": {
+                                "A": "Observing users at their workstations in real time",
+                                "B": "Sending structured questionnaires to user groups",
+                                "C": "Consulting journals, periodicals, internet sites, hardware/software vendors, and professional meetings",
+                                "D": "Reviewing blank and completed system forms"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 114,
+                            "question": "CASE stands for:",
+                            "options": {
+                                "A": "Computer-Aided Systems Engineering",
+                                "B": "Centralized Application Software Environment",
+                                "C": "Computer Application Systems Engineering",
+                                "D": "Centralized Automated Software Engineering"
+                            },
+                            "answer": "A"
+                        },
+                        {
+                            "id": 115,
+                            "question": "Upper CASE tools are used to:",
+                            "options": {
+                                "A": "Generate source code automatically from logical models",
+                                "B": "Support the modeling process and produce a logical design of the IS",
+                                "C": "Test, debug, and validate software applications",
+                                "D": "Create detailed hardware specifications"
+                            },
+                            "answer": "B"
+                        },
+                        {
+                            "id": 116,
+                            "question": "Functional Requirements describe:",
+                            "options": {
+                                "A": "The quality attributes of the system such as security and performance",
+                                "B": "The infrastructure and platforms the system needs to run on",
+                                "C": "What a system must DO — its capabilities, behaviors, and information needs",
+                                "D": "The high-level business goals of the organization"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 117,
+                            "question": "Non-Functional Requirements specify:",
+                            "options": {
+                                "A": "The specific tasks and processes the system must perform",
+                                "B": "What the system must do to fulfill business needs",
+                                "C": "Criteria to judge the operation of a system, such as performance, security, and reliability",
+                                "D": "The color scheme and language of the user interface"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 118,
+                            "question": "Which type of requirement refers to 'high-level statements of the goals, objectives, or needs of an organization'?",
+                            "options": {
+                                "A": "User Requirements",
+                                "B": "Functional Requirements",
+                                "C": "Technical Requirements",
+                                "D": "Business Requirements"
+                            },
+                            "answer": "D"
+                        },
+                        {
+                            "id": 119,
+                            "question": "The deliverable at the end of the Systems Analysis phase is:",
+                            "options": {
+                                "A": "System Design Specification",
+                                "B": "Preliminary Investigation Report",
+                                "C": "System Requirements Specifications (SRS)",
+                                "D": "A fully functioning and documented Information System"
+                            },
+                            "answer": "C"
+                        },
+                        {
+                            "id": 120,
+                            "question": "'The system shall not allow registration for the same user, using identification number as key' is an example of:",
+                            "options": {
+                                "A": "Functional Requirement",
+                                "B": "Non-Functional Requirement (Reliability)",
+                                "C": "Business Requirement",
+                                "D": "Architectural Requirement"
+                            },
+                            "answer": "B"
+                        }
+                    ]
+                }
+            ]
+        }
+
+        // Application State
+        let currentChapterIdx = 0;
+        let currentQuestionIdx = 0;
+        let score = 0;
+        let totalAnswered = 0;
+
+        // Tracking user history so they can change answers or see what they did
+        let userAnswers = {}; // key format: 'chap-quest' -> choice
+
+        // DOM Elements
+        const chapterSelect = document.getElementById('chapter-select');
+        const questionText = document.getElementById('question-text');
+        const optionsGrid = document.getElementById('options-grid');
+        const feedbackMsg = document.getElementById('feedback-msg');
+        const questionCount = document.getElementById('question-count');
+        const scoreDisplay = document.getElementById('score-display');
+        const progressFill = document.getElementById('progress-fill');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+
+        // Initialize UI
+        function initQuiz() {
+            // Populate Dropdown
+            chapterSelect.innerHTML = '';
+            quizData.chapters.forEach((ch, idx) => {
+                const option = document.createElement('option');
+                option.value = idx;
+                option.textContent = `Ch ${ch.chapter}: ${ch.title}`;
+                chapterSelect.appendChild(option);
+            });
+
+            loadChapter();
+        }
+
+        function changeChapter() {
+            currentChapterIdx = parseInt(chapterSelect.value);
+            currentQuestionIdx = 0;
+            loadChapter();
+        }
+
+        function loadChapter() {
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+            const chapter = quizData.chapters[currentChapterIdx];
+            const question = chapter.questions[currentQuestionIdx];
+
+            // Update Headers
+            questionCount.textContent = `Question ${currentQuestionIdx + 1} of ${chapter.questions.length}`;
+            scoreDisplay.textContent = `Score: ${score}/${totalAnswered}`;
+
+            // Update Progress Bar
+            const progressPercent = ((currentQuestionIdx + 1) / chapter.questions.length) * 100;
+            progressFill.style.width = `${progressPercent}%`;
+
+            // Set Question Text
+            questionText.textContent = `${question.id}. ${question.question}`;
+
+            // Clear Feedback
+            feedbackMsg.className = 'feedback-msg';
+            feedbackMsg.textContent = '';
+
+            // Set Options
+            optionsGrid.innerHTML = '';
+            const trackingKey = `${currentChapterIdx}-${currentQuestionIdx}`;
+            const alreadyAnswered = userAnswers.hasOwnProperty(trackingKey);
+
+            Object.entries(question.options).forEach(([key, value]) => {
+                const button = document.createElement('button');
+                button.className = 'option-btn';
+                button.innerHTML = `<span class="option-prefix">${key}</span> ${value}`;
+
+                if (alreadyAnswered) {
+                    button.disabled = true;
+                    if (key === question.answer) {
+                        button.classList.add('correct');
+                    }
+                    if (userAnswers[trackingKey] === key && key !== question.answer) {
+                        button.classList.add('incorrect');
+                    }
+                } else {
+                    button.onclick = () => selectOption(key, question.answer);
+                }
+
+                optionsGrid.appendChild(button);
+            });
+
+            // Show historical feedback message if already answered
+            if (alreadyAnswered) {
+                if (userAnswers[trackingKey] === question.answer) {
+                    feedbackMsg.textContent = "Correct!";
+                    feedbackMsg.className = "feedback-msg correct";
+                } else {
+                    feedbackMsg.textContent = `Incorrect. Correct answer is ${question.answer}`;
+                    feedbackMsg.className = "feedback-msg incorrect";
+                }
+            }
+
+            // Handle Nav Buttons
+            prevBtn.disabled = currentQuestionIdx === 0;
+            nextBtn.disabled = currentQuestionIdx === chapter.questions.length - 1;
+        }
+
+        function selectOption(selectedKey, correctKey) {
+            const trackingKey = `${currentChapterIdx}-${currentQuestionIdx}`;
+            userAnswers[trackingKey] = selectedKey;
+            totalAnswered++;
+
+            const isCorrect = selectedKey === correctKey;
+            if (isCorrect) score++;
+
+            // Lock buttons and colorize immediately
+            const buttons = optionsGrid.querySelectorAll('.option-btn');
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                const prefix = btn.querySelector('.option-prefix').textContent;
+                if (prefix === correctKey) {
+                    btn.classList.add('correct');
+                } else if (prefix === selectedKey) {
+                    btn.classList.add('incorrect');
+                }
+            });
+
+            // Show message
+            if (isCorrect) {
+                feedbackMsg.textContent = "Correct!";
+                feedbackMsg.className = "feedback-msg correct";
+            } else {
+                feedbackMsg.textContent = `Incorrect. Correct answer is ${correctKey}`;
+                feedbackMsg.className = "feedback-msg incorrect";
+            }
+
+            // Refresh score view
+            scoreDisplay.textContent = `Score: ${score}/${totalAnswered}`;
+        }
+
+        function nextQuestion() {
+            const chapter = quizData.chapters[currentChapterIdx];
+            if (currentQuestionIdx < chapter.questions.length - 1) {
+                currentQuestionIdx++;
+                displayQuestion();
+            }
+        }
+
+        function prevQuestion() {
+            if (currentQuestionIdx > 0) {
+                currentQuestionIdx--;
+                displayQuestion();
+            }
+        }
+
+        // Run on startup
+        initQuiz();
+    </script>
+</body>
+
+</html>
